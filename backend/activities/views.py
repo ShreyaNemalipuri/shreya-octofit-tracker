@@ -4,7 +4,9 @@ Views for Activity model
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Avg
+from django.utils import timezone
+from datetime import timedelta
 from .models import Activity
 from .serializers import ActivitySerializer, ActivitySummarySerializer
 from profiles.models import Profile
@@ -123,3 +125,62 @@ class ActivityViewSet(viewsets.ModelViewSet):
         
         serializer = ActivitySummarySerializer(summary_data)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def suggestions(self, request):
+        """Get personalized workout suggestions for a user"""
+        user_id = request.query_params.get('user', None)
+        
+        if not user_id:
+            return Response(
+                {'error': 'user parameter is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = Profile.objects.get(id=user_id)
+        except Profile.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Calculate last 7 days
+        seven_days_ago = timezone.now() - timedelta(days=7)
+        
+        # Get activities from last 7 days
+        recent_activities = Activity.objects.filter(
+            user_id=user_id,
+            date__gte=seven_days_ago
+        )
+        
+        tips = []
+        
+        # Rule 1: No activities in last 7 days
+        if not recent_activities.exists():
+            tips.append("Start with light stretching + 10-minute walk")
+        else:
+            # Rule 2: Recent 7-day total distance < 5 km
+            distance_total = recent_activities.aggregate(
+                total_distance=Sum('distance_km')
+            )['total_distance'] or 0.0
+            
+            if distance_total < 5:
+                tips.append("Daily 1 km walk for 5 days")
+            
+            # Rule 3: Average duration per activity < 20 minutes
+            duration_avg = recent_activities.aggregate(
+                avg_duration=Avg('duration_minutes')
+            )['avg_duration'] or 0
+            
+            if duration_avg < 20:
+                tips.append("Target 25 minutes per session")
+        
+        # Rule 4: User is in a team
+        if user.team:
+            tips.append("Contribute 50 points this week to help your team climb the leaderboard")
+        
+        return Response({
+            'user': str(user_id),
+            'tips': tips
+        })
