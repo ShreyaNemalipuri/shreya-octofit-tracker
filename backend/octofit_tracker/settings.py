@@ -24,7 +24,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'djongo',
     'profiles',
     'activities',
     'teams',
@@ -66,13 +65,10 @@ WSGI_APPLICATION = 'octofit_tracker.wsgi.application'
 # MongoDB Database Configuration
 DATABASES = {
     'default': {
-        'ENGINE': 'djongo',
-        'ENFORCE_SCHEMA': False,
-        'NAME': 'octofit_tracker',
-        'CLIENT': {
-            'host': 'localhost',
-            'port': 27017,
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        
+        'NAME': BASE_DIR / "db.sqlite3",
+        
     }
 }
 
