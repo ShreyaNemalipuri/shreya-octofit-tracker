@@ -52,6 +52,11 @@ class Activity(models.Model):
         # Update user's total points
         self.user.total_points += self.points
         self.user.save()
+        
+        # Update team's total points if user is in a team
+        if self.user.team:
+            self.user.team.total_points += self.points
+            self.user.team.save()
     
     def calculate_points(self):
         """Calculate points based on activity type and duration"""

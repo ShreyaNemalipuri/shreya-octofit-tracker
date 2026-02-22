@@ -11,7 +11,13 @@ class Profile(models.Model):
     name = models.CharField(max_length=255)
     age = models.IntegerField()
     grade = models.CharField(max_length=10, blank=True, null=True)  # fitness grade/level
-    team = models.CharField(max_length=255, blank=True, null=True)  # team association
+    team = models.ForeignKey(
+        'teams.Team',
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='members'
+    )
     total_points = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
